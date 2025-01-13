@@ -3,6 +3,7 @@ from rich.console import Console
 from rich.table import Table
 import matplotlib.pyplot as plt
 
+
 # 感知机学习算法的原始形式
 class Perceptron_origin(object):
     def __init__(self, lr=1e-1, max_iteration=2000):
@@ -20,12 +21,11 @@ class Perceptron_origin(object):
         """ 选取初值 np.random.rand() """
         self.w = np.random.rand(self.feature_size)
         self.b = np.random.rand(1)
-        updated = 1
         epoch = 0
         """ 迭代优化 """
-        while updated > 0 and epoch < self.max_iteration:
-            print(f"epoch {epoch} start; ")
-            updated = 0
+        while epoch < self.max_iteration:
+            print(f"epoch {epoch} start ")
+            wrong_items = 0
             # shuffle data
             perm = np.random.permutation(len(X))
             for i in perm:
@@ -34,8 +34,11 @@ class Perceptron_origin(object):
                 if self._predict(x) is not y:
                     self.w += self.lr * y * x
                     self.b += self.lr * y
-                    updated += 1
-            print(f"finished at iters: {epoch}, w: {self.w}, b: {self.b}")
+                    wrong_items += 1
+            """ 到达终止循环条件：没有误分类点 """
+            if wrong_items == 0:
+                print(f"finished at iters: {epoch}, w: {self.w}, b: {self.b}")
+                return
             epoch += 1
         """ 已达最大迭代次数情况 """
         print(f"finished for reaching the max_iter: {self.max_iteration}, w: {self.w}, b: {self.b}")
@@ -51,17 +54,17 @@ class Perceptron_dual(object):
         self.lr = lr
         self.max_iteration = max_iteration
 
-    def _cal_w(self, X, y):
-        w = 0
-        for i in range(len(self.alpha)):
-            w += self.alpha[i] * y[i] * X[i]
-        return w
-
     def _trans(self, x):
         return self.w @ x + self.b
 
     def _predict(self, x):
         return 1 if self._trans(x) >= 0. else -1
+
+    def _cal_w(self, X, y):
+        w = 0
+        for i in range(len(self.alpha)):
+            w += self.alpha[i] * y[i] * X[i]
+        return w
 
     def _gram_matrix(self, X):
         """ 计算xixj内积的 gram 矩阵"""
@@ -75,7 +78,7 @@ class Perceptron_dual(object):
         gram = self._gram_matrix(X)
         epoch = 0
         while epoch < self.max_iteration:
-            print(f"epoch {epoch} started...")
+            print(f"epoch {epoch} start ")
             wrong_items = 0
             for i in range(N):
                 tmp = 0
@@ -105,7 +108,7 @@ class Perceptron_dual(object):
 # 测试函数
 # 辅助绘图函数
 def draw_lines(w, b, *args, **kwargs):
-    if w[1] == 0:
+    if w[1] == 0.:
         plt.vlines(-b/w[0], *plt.gca().get_ylim(), *args, **kwargs)
     else:
         x_vals = np.array(plt.gca().get_xlim())
@@ -113,13 +116,13 @@ def draw_lines(w, b, *args, **kwargs):
         plt.plot(x_vals, y_vals, *args, **kwargs)
 
 def test_model(X, Y, desc):
-    # perceptron = Perceptron_origin()
-    perceptron = Perceptron_dual()
+    perceptron = Perceptron_origin()
+    # perceptron = Perceptron_dual()
     perceptron.fit(X, Y)
 
     # mathplot
     plt.scatter(X[:, 0], X[:, 1], c=Y)
-    wbline(perceptron.w, perceptron.b)
+    draw_lines(perceptron.w, perceptron.b)
     plt.title(desc)
     plt.show()
 
