@@ -2,7 +2,6 @@ import numpy as np
 from rich.console import Console
 from rich.table import Table
 import matplotlib.pyplot as plt
-from utils import *
 
 # 感知机学习算法的原始形式
 class Perceptron_origin(object):
