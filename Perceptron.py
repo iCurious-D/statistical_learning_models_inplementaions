@@ -6,10 +6,9 @@ from utils import *
 
 # 感知机学习算法的原始形式
 class Perceptron_origin(object):
-    def __init__(self, lr=1e-1, max_iteration=2000, verbose=False):
+    def __init__(self, lr=1e-1, max_iteration=2000):
         self.lr = lr
         self.max_iteration = max_iteration
-        self.verbose = verbose
 
     def _trans(self, x):
         return self.w @ x + self.b
@@ -26,8 +25,7 @@ class Perceptron_origin(object):
         epoch = 0
         """ 迭代优化 """
         while updated > 0 and epoch < self.max_iteration:
-            if self.verbose:
-                print(f"epoch {epoch} started...")
+            print(f"epoch {epoch} start; ")
             updated = 0
             # shuffle data
             perm = np.random.permutation(len(X))
@@ -38,9 +36,10 @@ class Perceptron_origin(object):
                     self.w += self.lr * y * x
                     self.b += self.lr * y
                     updated += 1
-            if self.verbose:
-                print(f"epoch {epoch} finished, {updated} pieces of data mis-classified")
+            print(f"finished at iters: {epoch}, w: {self.w}, b: {self.b}")
             epoch += 1
+        """ 已达最大迭代次数情况 """
+        print(f"finished for reaching the max_iter: {self.max_iteration}, w: {self.w}, b: {self.b}")
         return
 
     def predict(self, X):
@@ -49,10 +48,9 @@ class Perceptron_origin(object):
 
 # 感知机学习算法的对偶形式
 class Perceptron_dual(object):
-    def __init__(self, lr=1e-1, max_iteration=2000, verbose=False):
+    def __init__(self, lr=1e-1, max_iteration=2000):
         self.lr = lr
         self.max_iteration = max_iteration
-        self.verbose = verbose
 
     def _cal_w(self, X, y):
         w = 0
@@ -78,8 +76,7 @@ class Perceptron_dual(object):
         gram = self._gram_matrix(X)
         epoch = 0
         while epoch < self.max_iteration:
-            if self.verbose:
-                print(f"epoch {epoch} started...")
+            print(f"epoch {epoch} started...")
             wrong_items = 0
             for i in range(N):
                 tmp = 0
@@ -94,34 +91,43 @@ class Perceptron_dual(object):
             """ 到达终止循环条件：没有误分类点，用 α 计算 w """
             if wrong_items == 0:
                 self.w = self._cal_w(X, y)
-                print("finished at iters: {}, w: {}, b: {}".format(epoch, self.w, self.b))
+                print(f"finished at iters: {epoch}, w: {self.w}, b: {self.b}")
                 return
             epoch += 1
         """ 已达最大迭代次数情况 """
         self.w = self._cal_w(X, y)
-        print("finished for reaching the max_iter: {}, w: {}, b: {}".format(self.max_iteration, self.w, self.b))
+        print(f"finished for reaching the max_iter: {self.max_iteration}, w: {self.w}, b: {self.b}")
         return
 
     def predict(self, X):
-        return np.apply_along_axis(self._predict, axis=-1, X)
+        return np.apply_along_axis(func1d=self._predict, axis=-1, arr=X)
 
 
 # 测试函数
-def demonstrate(X, Y, desc):
-    console = Console(markup=False)
-    perceptron = Perceptron_origin(verbose=True)
-    # perceptron = Perceptron_dual(verbose=True)
+# 辅助绘图函数
+def draw_lines(w, b, *args, **kwargs):
+    if w[1] == 0:
+        plt.vlines(-b/w[0], *plt.gca().get_ylim(), *args, **kwargs)
+    else:
+        x_vals = np.array(plt.gca().get_xlim())
+        y_vals = (-w[0] / w[1]) * x_vals + b / w[1]
+        plt.plot(x_vals, y_vals, *args, **kwargs)
+
+def test_model(X, Y, desc):
+    # perceptron = Perceptron_origin()
+    perceptron = Perceptron_dual()
     perceptron.fit(X, Y)
 
-    # plot
+    # mathplot
     plt.scatter(X[:, 0], X[:, 1], c=Y)
     wbline(perceptron.w, perceptron.b)
     plt.title(desc)
     plt.show()
-    # show in table
+
+    # console print
+    console = Console(markup=False)
     pred = perceptron.predict(X)
     table = Table('x', 'y', 'pred')
-
     for x, y, y_hat in zip(X, Y, pred):
         table.add_row(*map(str, [x, y, y_hat]))
     console.print(table)
@@ -132,12 +138,12 @@ if __name__ == "__main__":
     print("Example 1:")
     X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
     Y = np.array([1, 1, -1, -1])
-    demonstrate(X, Y, "Example 1")
+    test_model(X, Y, "Example 1")
 
     # -------------------------- Example 2 ----------------------------------------
     print("Example 2: Perceptron cannot solve a simple XOR problem")
     X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
     Y = np.array([1, -1, -1, 1])
-    demonstrate(X, Y, "Example 2: Perceptron cannot solve a simple XOR problem")
+    test_model(X, Y, "Example 2: Perceptron cannot solve a simple XOR problem")
 
 
