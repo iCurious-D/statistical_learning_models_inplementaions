@@ -1,0 +1,161 @@
+import heapq
+from matplotlib import pyplot as plt
+import numpy as np
+from math import inf, nan
+from math import log, sqrt
+from collections import Counter
+
+
+def kbline(k, b, **args):
+    axes = plt.gca()
+    x_vals = np.array(axes.get_xlim())
+    y_vals = b + k * x_vals
+    plt.plot(x_vals, y_vals, **args)
+
+
+def wbline(w, b, **args):
+    if w[1] == 0:
+        plt.vlines(-b/w[0], *plt.gca().get_ylim(), **args)
+    else:
+        k = -w[0]/w[1]
+        b /= -w[1]
+        kbline(k, b, **args)
+
+
+def euc_dis(a, b):
+    return np.linalg.norm(a-b, axis=-1)
+
+
+def entropy(p):
+    s = sum(p)
+    p = [i / s for i in p]
+    ans = sum(-i * log(i, 2) for i in p)
+    return ans
+
+
+def entropy_of_split(X, Y, col):
+    val_cnt = Counter(x[col] for x in X)
+    ans = 0
+    for val in val_cnt:
+        weight = val_cnt[val] / len(X)
+        entr = entropy(Counter(y for x, y in zip(X, Y) if x[col] == val).values())
+        ans += weight * entr
+    return ans
+
+
+def information_gain(X, Y, col):
+    entropy_x = entropy(Counter(Y).values())
+    entropy_x_col = entropy_of_split(X, Y, col)
+    return entropy_x - entropy_x_col
+
+
+def information_gain_ratio(X, Y, col):
+    info_gain_col = information_gain(X, Y, col)
+    entropy_col = entropy(Counter(x[col] for x in X).values())
+    return info_gain_col / entropy_col
+
+
+def argmax(arr, key=lambda x: x):
+    arr = [key(a) for a in arr]
+    ans = max(arr)
+    return arr.index(ans), ans
+
+
+def argmin(arr, key=lambda x: x):
+    arr = [key(a) for a in arr]
+    ans = min(arr)
+    return arr.index(ans), ans
+
+
+def gini(Y):
+    cnt = Counter(Y)
+    ans = 0
+    for y in cnt:
+        ans += (cnt[y] / len(Y)) ** 2
+    return 1 - ans
+
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
+def softmax(logits, axis=-1):
+    exps = np.exp(logits)
+    return exps / exps.sum(axis=axis, keepdims=True)
+
+def binary_cross_entropy(pred, Y):
+    loss = -(Y * np.log(pred) + (1 - Y) * np.log(1 - pred)).sum()
+    return loss
+
+
+def line_search(f, l, r, epsilon=1e-6):
+    """find the minimum point of a convex function"""
+    lrate =  (3 - sqrt(5)) / 2
+    rrate = (sqrt(5) - 1) / 2
+    fll, frr = None, None
+    while r-1 >= epsilon:
+        if fll is None:
+            ll = l + (r - l) * lrate
+            fll = f(ll)
+        if frr is None:
+            rr = l + (r - l) * rrate
+            frr = f(rr)
+        if fll < frr:
+            r, rr = rr, ll
+            frr, fll = fll, None
+        elif fll > frr:
+            l, ll = ll, rr
+            fll, frr = frr, None
+        else:
+            l, r = ll, rr
+            fll, frr = None, None
+    return (l + r) / 2
+
+
+
+
+
+
+
+
+class Heap:
+    def __init__(self, arr=None, key=lambda x: x, max_len=inf):
+        self.key = key
+        self.max_len = max_len
+        if not arr:
+            self.h = []
+        else:
+            self.h = [(self.key(i), i) for i in arr]
+        heapq.heapify(self.h)
+        self.i = 0
+
+    def __len__(self):
+        return len(self.h)
+
+    def __bool__(self):
+        return len(self.h) != 0
+
+    def __iter__(self):
+        while self:
+            yield self.pop()
+
+    def pop(self):
+        return heapq.heappop(self.h)[-1]
+
+    def push(self, x):
+        heapq.heappush(self.h, (self.key(x), self.i, x))
+        self.i += 1
+        if len(self.h) > self.max_len:
+            self.pop()
+
+    def top(self):
+        return self.h[0][-1]
+
+    def top_key(self):
+        return self.h[0][0]
+
+
+
+
+
+
